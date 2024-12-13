@@ -53,6 +53,7 @@
 #include <string>
 
 #include "generated/resources/resources.h"
+#include "utils/Log.h"
 
 using namespace filament;
 using namespace filament::math;
@@ -215,6 +216,7 @@ static void createImageRenderable(Engine* engine, Scene* scene, App& app) {
 }
 
 static void loadImage(App& app, Engine* engine, const Path& filename) {
+    slog.d << "loadImage: " << filename << io::endl;
     if (app.scene.imageTexture) {
         engine->destroy(app.scene.imageTexture);
         app.scene.imageTexture = nullptr;
@@ -241,6 +243,7 @@ static void loadImage(App& app, Engine* engine, const Path& filename) {
     uint32_t channels = image->getChannels();
     uint32_t w = image->getWidth();
     uint32_t h = image->getHeight();
+    slog.d << "w: " << w << ", h: " << h << ", channels: " << channels << io::endl;
     Texture* texture = Texture::Builder()
             .width(w)
             .height(h)
