@@ -74,6 +74,7 @@ set(GLTFIO_SRCS
         ${GLTFIO_DIR}/src/FTrsTransformManager.h
         ${GLTFIO_DIR}/src/GltfEnums.h
         ${GLTFIO_DIR}/src/Ktx2Provider.cpp
+        ${GLTFIO_DIR}/src/DdsProvider.cpp
         ${GLTFIO_DIR}/src/MaterialProvider.cpp
         ${GLTFIO_DIR}/src/NodeManager.cpp
         ${GLTFIO_DIR}/src/TrsTransformManager.cpp
@@ -121,6 +122,8 @@ set(GLTFIO_INCLUDE_DIRS
         ../../third_party/meshoptimizer/src
         ../../third_party/robin-map
         ../../third_party/stb
+        ../../third_party/gli
+        ../../third_party/gli/external
         ../../libs/utils/include
         ../../libs/ktxreader/include
 )
