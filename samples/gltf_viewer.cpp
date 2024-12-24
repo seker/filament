@@ -106,6 +106,7 @@ struct App {
     gltfio::ResourceLoader* resourceLoader = nullptr;
     gltfio::TextureProvider* stbDecoder = nullptr;
     gltfio::TextureProvider* ktxDecoder = nullptr;
+    gltfio::TextureProvider* ddsDecoder = nullptr;
     bool recomputeAabb = false;
 
     bool actualSize = false;
@@ -702,9 +703,12 @@ int main(int argc, char** argv) {
             app.resourceLoader = new gltfio::ResourceLoader(configuration);
             app.stbDecoder = createStbProvider(app.engine);
             app.ktxDecoder = createKtx2Provider(app.engine);
+            app.ddsDecoder = createDdsProvider(app.engine);
             app.resourceLoader->addTextureProvider("image/png", app.stbDecoder);
             app.resourceLoader->addTextureProvider("image/jpeg", app.stbDecoder);
             app.resourceLoader->addTextureProvider("image/ktx2", app.ktxDecoder);
+            app.resourceLoader->addTextureProvider("image/vnd-ms.dds", app.ddsDecoder);
+            app.resourceLoader->addTextureProvider("image/dds", app.ddsDecoder);
         } else {
             app.resourceLoader->setConfiguration(configuration);
         }
@@ -1055,6 +1059,7 @@ int main(int argc, char** argv) {
         delete app.resourceLoader;
         delete app.stbDecoder;
         delete app.ktxDecoder;
+        delete app.ddsDecoder;
         delete app.automationSpec;
         delete app.automationEngine;
 
