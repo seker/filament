@@ -192,4 +192,12 @@ bool RenderableManager::getFogEnabled(Instance const instance) const noexcept {
     return downcast(this)->getFogEnabled(instance);
 }
 
+void RenderableManager::setVisible(Instance instance, bool visible) noexcept {
+    downcast(this)->setVisible(instance, visible);
+}
+
+bool RenderableManager::getVisible(Instance instance) const noexcept {
+    return downcast(this)->getVisible(instance);
+}
+
 } // namespace filament

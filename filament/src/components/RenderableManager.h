@@ -78,6 +78,7 @@ public:
         bool reversedWindingOrder       : 1;
         bool fog                        : 1;
         GeometryType geometryType       : 2;
+        bool visible                    : 1;
     };
 
     static_assert(sizeof(Visibility) == sizeof(uint16_t), "Visibility should be 16 bits");
@@ -140,6 +141,9 @@ public:
     inline void setCulling(Instance instance, bool enable) noexcept;
     inline void setFogEnabled(Instance instance, bool enable) noexcept;
     inline bool getFogEnabled(Instance instance) const noexcept;
+
+    inline void setVisible(Instance instance, bool visible) noexcept;
+    inline bool getVisible(Instance instance) const noexcept;
 
     inline void setPrimitives(Instance instance, utils::Slice<FRenderPrimitive> const& primitives) noexcept;
 
@@ -391,6 +395,17 @@ void FRenderableManager::setFogEnabled(Instance const instance, bool const enabl
 
 bool FRenderableManager::getFogEnabled(RenderableManager::Instance const instance) const noexcept {
     return getVisibility(instance).fog;
+}
+
+void FRenderableManager::setVisible(Instance const instance, bool const visible) noexcept {
+    if (instance) {
+        Visibility& visibility = mManager[instance].visibility;
+        visibility.visible = visible;
+    }
+}
+
+bool FRenderableManager::getVisible(Instance const instance) const noexcept {
+    return getVisibility(instance).visible;
 }
 
 void FRenderableManager::setSkinning(Instance const instance, bool const enable) {
