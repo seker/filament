@@ -672,6 +672,31 @@ void FAssetLoader::recurseEntities(const cgltf_node* node, SceneMask scenes, Ent
         if (srcAsset->variants_count > 0) {
             createMaterialVariants(node->mesh, entity, fAsset, instance);
         }
+    } else {
+        RenderableManager::Builder builder(0);
+        builder.build(mEngine, entity);
+    }
+
+    for (cgltf_size i = 0; i < node->extensions_count; i ++) {
+        cgltf_extension& extension = node->extensions[i];
+        if (0 == strcmp(extension.name, "KHR_node_visibility")) {
+            std::string jsonString(extension.data);
+
+            size_t startPos = jsonString.find("\"visible\"") + 9;
+            startPos = jsonString.find(':', startPos) + 1;
+            while (startPos < jsonString.length() && std::isspace(jsonString[startPos])) {
+                ++startPos;
+            }
+            std::size_t endPos = startPos;
+            while (endPos < jsonString.length() && std::isalpha(jsonString[endPos])) {
+                ++endPos;
+            }
+            const auto &visible = jsonString.substr(startPos, endPos - startPos);
+            if ("false" == visible) {
+                mRenderableManager.setVisible(mRenderableManager.getInstance(entity), false);
+            }
+            break;
+        }
     }
 
     if (node->light) {

@@ -119,7 +119,7 @@ void FScene::prepare(JobSystem& js,
                     lightInstances.emplace_back(li, ti);
                 }
             }
-            if (ri) {
+            if (ri && rcm.getVisible(ri)) {
                 renderableInstances.emplace_back(ri, ti);
             }
         }

@@ -372,6 +372,8 @@ public:
          */
         Builder& fog(bool enabled = true) noexcept;
 
+        Builder& visible(bool visible = true) noexcept;
+
         /**
          * Enables GPU vertex skinning for up to 255 bones, 0 by default.
          *
@@ -655,6 +657,9 @@ public:
      * @see Builder::fog()
      */
     bool getFogEnabled(Instance instance) const noexcept;
+
+    void setVisible(Instance instance, bool visible) noexcept;
+    bool getVisible(Instance instance) const noexcept;
 
     /**
      * Enables or disables a light channel.

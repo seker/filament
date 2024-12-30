@@ -85,6 +85,7 @@ struct RenderableManager::BuilderDetails {
     bool mScreenSpaceContactShadows : 1;
     bool mSkinningBufferMode : 1;
     bool mFogEnabled : 1;
+    bool mVisible : 1;
     Builder::GeometryType mGeometryType : 2;
     size_t mSkinningBoneCount = 0;
     size_t mMorphTargetCount = 0;
@@ -104,7 +105,7 @@ struct RenderableManager::BuilderDetails {
     explicit BuilderDetails(size_t const count)
             : mEntries(count), mCulling(true), mCastShadows(false),
               mReceiveShadows(true), mScreenSpaceContactShadows(false),
-              mSkinningBufferMode(false), mFogEnabled(true),
+              mSkinningBufferMode(false), mFogEnabled(true), mVisible(true),
               mGeometryType(Builder::GeometryType::DYNAMIC),
               mBonePairs() {
     }
@@ -268,6 +269,11 @@ RenderableManager::Builder& RenderableManager::Builder::boneIndicesAndWeights(si
 
 RenderableManager::Builder& RenderableManager::Builder::fog(bool const enabled) noexcept {
     mImpl->mFogEnabled = enabled;
+    return *this;
+}
+
+RenderableManager::Builder& RenderableManager::Builder::visible(bool const visible) noexcept {
+    mImpl->mVisible = visible;
     return *this;
 }
 
@@ -576,6 +582,7 @@ void FRenderableManager::create(
         setSkinning(ci, false);
         setMorphing(ci, builder->mMorphTargetCount);
         setFogEnabled(ci, builder->mFogEnabled);
+        setVisible(ci, builder->mVisible);
         // do this after calling setAxisAlignedBoundingBox
         static_cast<Visibility&>(mManager[ci].visibility).geometryType = builder->mGeometryType;
         mManager[ci].channels = builder->mLightChannels;
