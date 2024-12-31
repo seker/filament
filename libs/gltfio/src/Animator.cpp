@@ -38,6 +38,8 @@
 #include <string>
 #include <vector>
 
+#include "utils/Path.h"
+
 using namespace filament;
 using namespace filament::math;
 using namespace std;
@@ -58,7 +60,15 @@ struct Sampler {
 struct Channel {
     const Sampler* sourceData;
     Entity targetEntity;
-    enum { TRANSLATION, ROTATION, SCALE, WEIGHTS } transformType;
+    enum { TRANSLATION, ROTATION, SCALE, WEIGHTS, POINTER, } transformType;
+
+    std::string pointerParameterName;
+
+    size_t materialIndex;
+
+    std::string extension;
+    std::string extensionPathName;
+    size_t extensionPathIndex;
 };
 
 struct Animation {
@@ -78,6 +88,11 @@ struct AnimatorImpl {
     TrsTransformManager* trsTransformManager;
     vector<float> weights;
     FixedCapacityVector<mat4f> crossFade;
+    void addChannelByPointer(
+        const FixedCapacityVector<Entity>& nodeMap,
+        const cgltf_animation& srcAnim,
+        const cgltf_animation_channel& srcChannel,
+        Animation& dst);
     void addChannels(const FixedCapacityVector<Entity>& nodeMap, const cgltf_animation& srcAnim,
             Animation& dst);
     void applyAnimation(const Channel& channel, float t, size_t prevIndex, size_t nextIndex);
@@ -400,17 +415,164 @@ void AnimatorImpl::applyCrossFade(float alpha) {
     recursiveFn(root, 0, recursiveFn);
 }
 
+    void AnimatorImpl::addChannelByPointer(
+        const FixedCapacityVector<Entity>& nodeMap,
+        const cgltf_animation& srcAnim,
+        const cgltf_animation_channel& srcChannel,
+        Animation& dst) {
+
+    const cgltf_animation_sampler* srcSamplers = srcAnim.samplers;
+    const Sampler* samplers = dst.samplers.data();
+    for (cgltf_size i = 0; i < srcChannel.extensions_count; i ++) {
+        const cgltf_extension& extension = srcChannel.extensions[i];
+        if (0 == strcmp(extension.name, "KHR_animation_pointer")) {
+            std::string jsonString(extension.data);
+
+            size_t startPos = jsonString.find("\"pointer\"")  + 9; // 移过"pointer"本身
+            startPos = jsonString.find(':', startPos) + 1; // 移过冒号本身
+            startPos = jsonString.find('"', startPos) + 1; // 移过引号本身
+            startPos = jsonString.find('/', startPos) + 1; // 移过斜杠号本身
+            const std::size_t endPos = jsonString.find('"', startPos);
+
+            const auto &pointer = jsonString.substr(startPos, endPos - startPos);
+            // slog.d << "pointer: " << pointer << io::endl;
+
+            const Path path(pointer);
+            const auto &vs = path.split();
+            if ("materials" == vs[0]) {
+                const int index = std::stoi(vs[1]);
+                const auto& pathType = vs[2];
+                assert(index < instance->getMaterialInstanceCount());
+
+                Channel dstChannel;
+                dstChannel.pointerParameterName = pathType;
+                dstChannel.sourceData = samplers + (srcChannel.sampler - srcSamplers);
+                dstChannel.materialIndex = index;
+                dstChannel.transformType = Channel::POINTER;
+                dst.channels.push_back(dstChannel);
+
+                auto &times = dstChannel.sourceData->times;
+                slog.d << "  materials[" << index << "], pathType=" << pathType
+                        << ", materialInstanceCount=" << instance->getMaterialInstanceCount()
+                        << ", interpolation=" << dstChannel.sourceData->interpolation
+                        << ", count=" << times.size()
+                        << ", times[" << times.begin()->first << ":" << times.begin()->second << " -> " << times.end()->first << ":" << times.end()->second << "]"
+                        << io::endl;
+            } else if ("nodes" == vs[0]) {
+                const int index = std::stoi(vs[1]);
+                const auto& pathType = vs[2];
+                if ("extensions" == pathType) {
+                    const auto& extension = vs[3];
+                    if ("KHR_node_visibility" == extension) {
+                        const auto& parameterName = vs[4];
+
+                        Channel dstChannel;
+                        dstChannel.pointerParameterName = parameterName;
+                        dstChannel.sourceData = samplers + (srcChannel.sampler - srcSamplers);
+                        dstChannel.targetEntity = nodeMap[index];
+                        dstChannel.transformType = Channel::POINTER;
+                        dst.channels.push_back(dstChannel);
+
+                        auto &times = dstChannel.sourceData->times;
+                        auto &values = dstChannel.sourceData->values;
+                        if ("emissiveFactor" == parameterName) {
+                            auto r1 = values.at(0);
+                            auto g1 = values.at(1);
+                            auto b1 = values.at(2);
+
+                            auto r2 = values.at(values.size() - 3);
+                            auto g2 = values.at(values.size() - 2);
+                            auto b2 = values.at(values.size() - 1);
+                            slog.d << "  nodes[" << index << "], parameter=" << parameterName
+                                << ", interpolation=" << dstChannel.sourceData->interpolation
+                                << ", count=" << times.size()
+                                << ", times[" << times.begin()->first << ":" << times.begin()->second << " ~ " << times.end()->first << ":" << times.end()->second << "]"
+                                << ", values[(" << r1 << "," << g1 << "," << b1 << ") -> (" << r2 << "," << g2 << "," << b2 << ")]"
+                                << io::endl;
+                        } else {
+                            slog.d << "  nodes[" << index << "], parameter=" << parameterName
+                                << ", interpolation=" << dstChannel.sourceData->interpolation
+                                << ", count=" << times.size()
+                                << ", times[" << times.begin()->first << ":" << times.begin()->second << " ~ " << times.end()->first << ":" << times.end()->second << "]"
+                                << ", values[" << values.at(0) << " -> " << values.at(values.size() - 1) << "]"
+                                << io::endl;
+                        }
+                    }
+                } else {
+                    slog.d << "  nodes[" << index << "], pathType=" << pathType << io::endl;
+                }
+            } else if ("extensions" == vs[0]) {
+                const auto& extension2 = vs[1];
+                if ("EXT_lights_image_based" == extension2) {
+                    const auto& pathType = vs[2];
+                    if ("lights" == pathType) {
+                        const int index = std::stoi(vs[3]);
+                        const auto& parameterName = vs[4];
+
+                        Channel dstChannel;
+                        dstChannel.extension = extension2;
+                        dstChannel.extensionPathName = pathType;
+                        dstChannel.extensionPathIndex = index;
+                        dstChannel.pointerParameterName = parameterName;
+                        dstChannel.sourceData = samplers + (srcChannel.sampler - srcSamplers);
+                        dstChannel.transformType = Channel::POINTER;
+                        dst.channels.push_back(dstChannel);
+
+                        auto &times = dstChannel.sourceData->times;
+                        auto &values = dstChannel.sourceData->values;
+
+                        if ("tint" == parameterName) {
+                            auto r1 = values.at(0);
+                            auto g1 = values.at(1);
+                            auto b1 = values.at(2);
+
+                            auto r2 = values.at(values.size() - 3);
+                            auto g2 = values.at(values.size() - 2);
+                            auto b2 = values.at(values.size() - 1);
+                            slog.d << "  lights[" << index << "], parameter=" << parameterName
+                                << ", interpolation=" << dstChannel.sourceData->interpolation
+                                << ", count=" << times.size()
+                                << ", times[" << times.begin()->first << ":" << times.begin()->second << " ~ " << times.end()->first << ":" << times.end()->second << "]"
+                                << ", values[(" << r1 << "," << g1 << "," << b1 << ") -> (" << r2 << "," << g2 << "," << b2 << ")]"
+                                << io::endl;
+                        } else {
+                            slog.d << "  lights[" << index << "], parameter=" << parameterName
+                                << ", interpolation=" << dstChannel.sourceData->interpolation
+                                << ", count=" << times.size()
+                                << ", times[" << times.begin()->first << ":" << times.begin()->second << " ~ " << times.end()->first << ":" << times.end()->second << "]"
+                                << ", values[" << values.at(0) << " -> " << values.at(values.size() - 1) << "]"
+                                << io::endl;
+                        }
+                    }
+                } else {
+
+                }
+            } else {
+
+            }
+            break;
+        }
+    }
+}
+
 void AnimatorImpl::addChannels(const FixedCapacityVector<Entity>& nodeMap,
         const cgltf_animation& srcAnim, Animation& dst) {
     const cgltf_animation_channel* srcChannels = srcAnim.channels;
     const cgltf_animation_sampler* srcSamplers = srcAnim.samplers;
     const cgltf_node* nodes = asset->mSourceAsset->hierarchy->nodes;
     const Sampler* samplers = dst.samplers.data();
+    if (srcAnim.channels_count > 0) {
+        slog.d << dst.name << " addChannels() begin." << io::endl;
+    }
     for (cgltf_size j = 0, nchans = srcAnim.channels_count; j < nchans; ++j) {
         const cgltf_animation_channel& srcChannel = srcChannels[j];
-        if (!srcChannel.target_node) {
+
+        if (!srcChannel.target_node ||
+            cgltf_animation_path_type_invalid == srcChannel.target_path) {
+            addChannelByPointer(nodeMap, srcAnim, srcChannel, dst);
             continue;
         }
+
         Entity targetEntity = nodeMap[srcChannel.target_node - nodes];
         if (UTILS_UNLIKELY(!targetEntity)) {
             if (GLTFIO_VERBOSE) {
@@ -431,6 +593,9 @@ void AnimatorImpl::addChannels(const FixedCapacityVector<Entity>& nodeMap,
         dstChannel.targetEntity = targetEntity;
         setTransformType(srcChannel, dstChannel);
         dst.channels.push_back(dstChannel);
+    }
+    if (srcAnim.channels_count > 0) {
+        slog.d << dst.name << " addChannels() end, dst.channels.size()=" << dst.channels.size() << io::endl;
     }
 }
 
@@ -522,6 +687,27 @@ void AnimatorImpl::applyAnimation(const Channel& channel, float t, size_t prevIn
 
             auto ci = renderableManager->getInstance(channel.targetEntity);
             renderableManager->setMorphWeights(ci, weights.data(), weights.size());
+            return;
+        }
+        case Channel::POINTER: {
+            if (channel.targetEntity.isNull()) {
+                auto &mati = instance->getMaterialInstances()[channel.materialIndex];
+                // auto mati = renderableManager->getMaterialInstanceAt(renderableManager->getInstance(instance->mRoot), channel.materialIndex);
+                // slog.d << "applyAnimation()." << channel.pointerParameterName << " : prevIndex=" << prevIndex << ", nextIndex=" << nextIndex << io::endl;
+                if ("emissiveFactor" == channel.pointerParameterName) {
+                    auto r = sampler->values.at(nextIndex * 3);
+                    auto g = sampler->values.at(nextIndex * 3 + 1);
+                    auto b = sampler->values.at(nextIndex * 3 + 2);
+                    const auto emissiveFactor = float3(r, g, b);
+                    mati->setParameter(channel.pointerParameterName.c_str(), emissiveFactor);
+                }
+            } else {
+                auto ci = renderableManager->getInstance(channel.targetEntity);
+                if ("visibility" == channel.pointerParameterName) {
+                    // slog.d << "applyAnimation().visibility : prevIndex=" << prevIndex << ", nextIndex=" << nextIndex << io::endl;
+                    renderableManager->setVisible(ci, sampler->values.at(nextIndex));
+                }
+            }
             return;
         }
     }
