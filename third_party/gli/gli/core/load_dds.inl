@@ -293,7 +293,7 @@ namespace detail
 			std::max<texture::size_type>(Header10.ArraySize, 1), FaceCount, MipMapCount);
 
 		std::size_t const SourceSize = Offset + Texture.size();
-		GLI_ASSERT(SourceSize == Size);
+		GLI_ASSERT(SourceSize <= Size);
 
 		std::memcpy(Texture.data(), Data + Offset, Texture.size());
 
