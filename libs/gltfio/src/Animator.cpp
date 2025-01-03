@@ -459,7 +459,8 @@ void AnimatorImpl::applyCrossFade(float alpha) {
                 const auto& pathType = vs[2];
                 if ("extensions" == pathType) {
                     const auto& extension = vs[3];
-                    if ("KHR_node_visibility" == extension) {
+                    if ("KHR_node_visibility" == extension ||
+                        "EXT_node_visibility" == extension) {
                         const auto& parameterName = vs[4];
 
                         Channel dstChannel;
