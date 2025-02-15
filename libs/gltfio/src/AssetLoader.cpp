@@ -679,7 +679,8 @@ void FAssetLoader::recurseEntities(const cgltf_node* node, SceneMask scenes, Ent
 
     for (cgltf_size i = 0; i < node->extensions_count; i ++) {
         cgltf_extension& extension = node->extensions[i];
-        if (0 == strcmp(extension.name, "KHR_node_visibility")) {
+        if (0 == strcmp(extension.name, "KHR_node_visibility") ||
+            0 == strcmp(extension.name, "EXT_node_visibility")) {
             std::string jsonString(extension.data);
 
             size_t startPos = jsonString.find("\"visible\"") + 9;

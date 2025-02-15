@@ -463,7 +463,8 @@ void AnimatorImpl::applyCrossFade(float alpha) {
                 const auto& pathType = vs[2];
                 if ("extensions" == pathType) {
                     const auto& extension = vs[3];
-                    if ("KHR_node_visibility" == extension) {
+                    if ("KHR_node_visibility" == extension ||
+                        "EXT_node_visibility" == extension) {
                         const auto& parameterName = vs[4];
 
                         Channel dstChannel;
@@ -503,7 +504,8 @@ void AnimatorImpl::applyCrossFade(float alpha) {
                 }
             } else if ("extensions" == vs[0]) {
                 const auto& extension2 = vs[1];
-                if ("EXT_lights_image_based" == extension2) {
+                if ("EXT_lights_image_based" == extension2 ||
+                    "EXT_lights_spherical_image_based" == extension2) {
                     const auto& pathType = vs[2];
                     if ("lights" == pathType) {
                         const int index = std::stoi(vs[3]);
