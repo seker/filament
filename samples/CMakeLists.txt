@@ -5,8 +5,13 @@ if (FILAMENT_SKIP_SAMPLES)
     return()
 endif()
 
+message("CMAKE_CURRENT_SOURCE_DIR   : ${CMAKE_CURRENT_SOURCE_DIR}")
+message("CMAKE_CURRENT_BINARY_DIR   : ${CMAKE_CURRENT_BINARY_DIR}")
+
 set(ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/..)
+message("ROOT_DIR                   : ${ROOT_DIR}")
 set(GENERATION_ROOT ${CMAKE_CURRENT_BINARY_DIR})
+message("GENERATION_ROOT            : ${GENERATION_ROOT}")
 set(RESOURCE_DIR  "${GENERATION_ROOT}/generated/resources")
 set(MATERIAL_DIR  "${GENERATION_ROOT}/generated/material")
 set(TEXTURE_DIR "${GENERATION_ROOT}/generated/texture")
@@ -61,6 +66,8 @@ elseif (FILAMENT_SAMPLES_STEREO_TYPE STREQUAL "multiview")
     set (MATC_FLAGS ${MATC_FLAGS} -PstereoscopicType=multiview)
     add_definitions(-DFILAMENT_SAMPLES_STEREO_TYPE_MULTIVIEW)
 endif ()
+message("MATC_BASE_FLAGS: ${MATC_BASE_FLAGS}")
+message("MATC_FLAGS: ${MATC_FLAGS}")
 
 foreach (mat_src ${MATERIAL_SRCS})
     get_filename_component(localname "${mat_src}" NAME_WE)
@@ -71,7 +78,7 @@ foreach (mat_src ${MATERIAL_SRCS})
             COMMAND matc ${MATC_FLAGS} -o ${output_path} ${fullname}
             MAIN_DEPENDENCY ${mat_src}
             DEPENDS matc
-            COMMENT "Compiling material ${mat_src} to ${output_path}"
+            COMMENT "Compiling material ${mat_src} ${MATC_FLAGS} to ${output_path}"
     )
     list(APPEND RESOURCE_BINS ${output_path})
 endforeach()
@@ -84,16 +91,22 @@ file(MAKE_DIRECTORY ${RESOURCE_DIR})
 
 get_resgen_vars(${RESOURCE_DIR} resources)
 
+message("RESGEN_FLAGS               : ${RESGEN_FLAGS}")
+message("RESOURCE_BINS              : ${RESOURCE_BINS}")
 add_custom_command(
         OUTPUT ${RESGEN_OUTPUTS}
         COMMAND resgen ${RESGEN_FLAGS} ${RESOURCE_BINS}
         DEPENDS resgen ${RESOURCE_BINS}
         COMMENT "Aggregating resources"
 )
+message("RESGEN_OUTPUTS             : ${RESGEN_OUTPUTS}")
 
+message("RESGEN_SOURCE              : ${RESGEN_SOURCE}")
+message("RESGEN_SOURCE_FLAGS        : ${RESGEN_SOURCE_FLAGS}")
 if (DEFINED RESGEN_SOURCE_FLAGS)
     set_source_files_properties(${RESGEN_SOURCE} PROPERTIES COMPILE_FLAGS ${RESGEN_SOURCE_FLAGS})
 endif()
+message("COMPILE_FLAGS              : ${COMPILE_FLAGS}")
 
 # CMake fails to invoke ar on Windows unless there is at least one C/C++ file in the library.
 set(DUMMY_SRC "${RESOURCE_DIR}/dummy.c")
@@ -175,12 +188,14 @@ add_pngfile("assets/models/monkey/normal.png" "normal.png")
 
 get_resgen_vars(${RESOURCE_DIR} monkey)
 
+message("MONKEY_FILES               : ${MONKEY_FILES}")
 add_custom_command(
         OUTPUT ${RESGEN_OUTPUTS}
         COMMAND resgen ${RESGEN_FLAGS} ${MONKEY_FILES}
         DEPENDS resgen ${MONKEY_FILES}
         COMMENT "Aggregating monkey resources"
 )
+message("RESGEN_OUTPUTS             : ${RESGEN_OUTPUTS}")
 
 if (DEFINED RESGEN_SOURCE_FLAGS)
     set_source_files_properties(${RESGEN_SOURCE} PROPERTIES COMPILE_FLAGS ${RESGEN_SOURCE_FLAGS})
@@ -204,11 +219,13 @@ set(GLTF_DEMO_RESOURCES
 
 get_resgen_vars(${RESOURCE_DIR} gltf_demo)
 
+message("GLTF_DEMO_RESOURCES        : ${GLTF_DEMO_RESOURCES}")
 add_custom_command(
         OUTPUT ${RESGEN_OUTPUTS}
         COMMAND resgen ${RESGEN_FLAGS} ${GLTF_DEMO_RESOURCES}
         DEPENDS resgen ${GLTF_DEMO_RESOURCES}
 )
+message("RESGEN_OUTPUTS             : ${RESGEN_OUTPUTS}")
 
 if (DEFINED RESGEN_SOURCE_FLAGS)
     set_source_files_properties(${RESGEN_SOURCE} PROPERTIES COMPILE_FLAGS ${RESGEN_SOURCE_FLAGS})
