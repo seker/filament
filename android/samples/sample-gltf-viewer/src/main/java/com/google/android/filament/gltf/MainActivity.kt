@@ -348,6 +348,7 @@ class MainActivity : Activity() {
         remoteServer?.close()
     }
 
+    @Deprecated("")
     override fun onBackPressed() {
         super.onBackPressed()
         finish()

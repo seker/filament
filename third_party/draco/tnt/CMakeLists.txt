@@ -298,6 +298,8 @@ set(draco_io_sources
     "${draco_src_root}/io/file_writer_factory.cc"
     "${draco_src_root}/io/file_writer_factory.h"
     "${draco_src_root}/io/file_writer_interface.h"
+    "${draco_src_root}/io/file_writer_utils.h"
+    "${draco_src_root}/io/file_writer_utils.cc"
     "${draco_src_root}/io/mesh_io.cc"
     "${draco_src_root}/io/mesh_io.h"
     "${draco_src_root}/io/obj_decoder.cc"
