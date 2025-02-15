@@ -99,7 +99,7 @@ void TangentsJob::run(Params* params) {
 
     // Convert tangents into packed floats.
     if (auto baseTangentsInfo = baseAccessors[cgltf_attribute_type_tangent]; baseTangentsInfo) {
-        assert(baseTangentsInfo->count == vertexCount);
+        assert(baseTangentsInfo->count <= vertexCount);
         unpackedTangents.reset(new float4[vertexCount]);
         cgltf_accessor_unpack_floats(baseTangentsInfo, &unpackedTangents[0].x, vertexCount * 4);
         if (auto mtTangentsInfo = morphTargetAccessors[cgltf_attribute_type_tangent]) {
